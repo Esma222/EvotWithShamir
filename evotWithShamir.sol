@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity >=0.7.0 <0.9.0;
 
-contract BallotWithShamir {
+contract BallotWithShamirSecret {
     struct Voter {
         uint weight;
         bool voted;
@@ -17,8 +17,6 @@ contract BallotWithShamir {
     address public chairperson;
     uint public threshold;
     uint public totalVoters;
-    uint public currentVoters;
-    uint public secret;
 
     mapping(address => Voter) public voters;
     Candidate[] public candidates;
@@ -28,14 +26,12 @@ contract BallotWithShamir {
 
     event VoteReceived(address indexed voter, uint indexed candidate, uint secretShare);
 
-    // Shamir Secret Sharing coefficients and polynomial degree
-    uint256[] public coefficients;
+    uint256[] public coefficients; // Polynomial coefficients
 
-    constructor(string[] memory candidateNames, uint _totalVoters, uint _secret, uint _threshold) {
+    constructor(string[] memory candidateNames, uint _totalVoters, uint _threshold, address[] memory voterAddresses) {
         chairperson = msg.sender;
         totalVoters = _totalVoters;
-        secret = _secret;
-        threshold = _threshold; // Set threshold equal to the number of voters
+        threshold = _threshold;
         state = State.Created;
 
         // Initialize the candidates
@@ -43,8 +39,13 @@ contract BallotWithShamir {
             candidates.push(Candidate({ name: candidateNames[i], voteCount: 0 }));
         }
 
+        // Initialize voters and distribute secret shares
+        for (uint i = 0; i < voterAddresses.length; i++) {
+            voters[voterAddresses[i]].weight = 1; // Give voting power to each voter
+        }
+
         // Generate the polynomial coefficients and distribute secret shares
-        generateSecretShares();
+        generateSecretShares(voterAddresses);
     }
 
     modifier onlyChairperson() {
@@ -80,17 +81,21 @@ contract BallotWithShamir {
     }
 
     // Shamir's Secret Sharing: Generate secret shares for all participants
-    function generateSecretShares() private {
-        // Generate random polynomial coefficients, for simplicity using fixed coefficients here
+    function generateSecretShares(address[] memory voterAddresses) private {
+        // Define a secret number (sırrı sabit bir sayı yerine burada oluşturuyoruz)
+        uint secret = uint(keccak256(abi.encodePacked(block.timestamp)));
+
+        // Generate random polynomial coefficients
         coefficients.push(secret); // secret is the constant term of the polynomial
         for (uint i = 1; i < threshold; i++) {
             coefficients.push(uint(keccak256(abi.encodePacked(block.timestamp, i))) % 100); // Random coefficients
         }
 
-        // Distribute secret shares (using a simplified polynomial evaluation)
-        for (uint i = 1; i <= totalVoters; i++) {
-            uint share = evaluatePolynomial(i);
-            voters[chairperson].secretShare = share; // Assign the share to each voter
+        // Distribute secret shares to voters based on polynomial evaluation
+        uint share;
+        for (uint i = 0; i < voterAddresses.length; i++) {
+            share = evaluatePolynomial(i + 1);  // Using i+1 as the x value for polynomial evaluation
+            voters[voterAddresses[i]].secretShare = share;
         }
     }
 
@@ -128,8 +133,8 @@ contract BallotWithShamir {
     // Reconstruct the secret using the shares
     function reconstructSecret() private view returns (uint) {
         uint totalShares = 0;
-        for (uint i = 1; i <= totalVoters; i++) {
-            totalShares += voters[chairperson].secretShare; // Add up all shares
+        for (uint i = 0; i < totalVoters; i++) {
+            totalShares += voters[address(uint160(i))].secretShare; // Add up all shares
         }
         return totalShares / totalVoters; // Simplified calculation for demo purposes
     }
@@ -148,4 +153,9 @@ contract BallotWithShamir {
     }
 
     event Winner(string winner, uint reconstructedSecret);
+    
+    // Get voter’s secret share (for testing purposes)
+    function getVoterSecretShare(address voterAddress) public view returns (uint) {
+        return voters[voterAddress].secretShare;
+    }
 }
