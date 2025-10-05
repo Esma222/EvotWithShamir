@@ -42,7 +42,6 @@ Here, we use **Ethereum smart contracts** to handle election logic, and **Shamir
 3. Connect your **MetaMask** wallet to the **Sepolia test network**  
 4. Fund accounts with small amounts of SepoliaETH  
 5. Deploy the contract and specify the number of voters  
-6. Interact with the contract via Remix UI (register, vote, view results)
 
 ---
 
