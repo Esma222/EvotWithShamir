@@ -55,7 +55,7 @@ Here, we use **Ethereum smart contracts** to handle election logic, and **Shamir
 
 ## 📜 References
 - Presented and published at **ISDFS Conference 2025**  
-- Related research: [Shamir’s Secret Sharing - Original Paper (1979)](https://ieeexplore.ieee.org/document/11011920)
+- Related research: [Securing Blockchain-Based E-Voting Through Shamir's Secret Sharing over Ethereum](https://ieeexplore.ieee.org/document/11011920)
 
 ---
 
